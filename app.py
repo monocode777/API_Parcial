@@ -1,24 +1,24 @@
 from flask import Flask
-from controllers.videojuegos_controller import videojuegos_bp
-from models.videojuego import db
 from config.config import Config
+from flask_sqlalchemy import SQLAlchemy
+from controllers.videojuegos_controller import videojuegos_bp
 
-def create_app():
-    app = Flask(__name__)
-    app.config.from_object(Config)
+# Inicializa la app Flask
+app = Flask(__name__)
 
-    # Inicializar base de datos
-    db.init_app(app)
+# Configuración de la app (se carga desde config/config.py)
+app.config.from_object(Config)
 
-    # Crear las tablas si no existen
-    with app.app_context():
-        db.create_all()
+# Inicializa SQLAlchemy para manejar la base de datos
+db = SQLAlchemy(app)
 
-    # Registrar rutas
-    app.register_blueprint(videojuegos_bp, url_prefix="/videojuegos")
+# Crea todas las tablas si no existen (basado en los modelos)
+with app.app_context():
+    db.create_all()
 
-    return app
+# Registra el blueprint de videojuegos (rutas de la API)
+app.register_blueprint(videojuegos_bp, url_prefix='/videojuegos')
 
-if __name__ == "__main__":
-    app = create_app()
+# Punto de entrada principal
+if __name__ == '__main__':
     app.run(debug=True)

@@ -1,39 +1,44 @@
-from models.videojuego import db, Videojuego
+from app import db
+from models.videojuego import Videojuego
 
+# Obtener todos los videojuegos
 def obtener_todos():
-    videojuegos = Videojuego.query.all()
-    return [v.to_dict() for v in videojuegos]
+    return [v.to_dict() for v in Videojuego.query.all()]
 
+# Obtener un videojuego por ID
 def obtener_por_id(id):
-    videojuego = Videojuego.query.get(id)
-    return videojuego.to_dict() if videojuego else None
+    v = Videojuego.query.get(id)
+    return v.to_dict() if v else None
 
-def agregar(videojuego_data):
+# Agregar un nuevo videojuego
+def agregar(data):
     nuevo = Videojuego(
-        titulo=videojuego_data["titulo"],
-        genero=videojuego_data["genero"],
-        plataforma=videojuego_data["plataforma"],
-        rating=videojuego_data["rating"],
+        titulo=data['titulo'],
+        genero=data['genero'],
+        plataforma=data['plataforma'],
+        rating=data['rating']
     )
-    db.session.add(nuevo)
-    db.session.commit()
+    db.session.add(nuevo)   # Agrega a la sesión
+    db.session.commit()     # Guarda en la BD
     return nuevo.to_dict()
 
-def actualizar(id, datos):
-    videojuego = Videojuego.query.get(id)
-    if not videojuego:
-        return None
-    videojuego.titulo = datos.get("titulo", videojuego.titulo)
-    videojuego.genero = datos.get("genero", videojuego.genero)
-    videojuego.plataforma = datos.get("plataforma", videojuego.plataforma)
-    videojuego.rating = datos.get("rating", videojuego.rating)
-    db.session.commit()
-    return videojuego.to_dict()
+# Actualizar un videojuego existente
+def actualizar(id, data):
+    v = Videojuego.query.get(id)
+    if v:
+        v.titulo = data.get('titulo', v.titulo)
+        v.genero = data.get('genero', v.genero)
+        v.plataforma = data.get('plataforma', v.plataforma)
+        v.rating = data.get('rating', v.rating)
+        db.session.commit()
+        return v.to_dict()
+    return None
 
+# Eliminar un videojuego por ID
 def eliminar(id):
-    videojuego = Videojuego.query.get(id)
-    if not videojuego:
-        return False
-    db.session.delete(videojuego)
-    db.session.commit()
-    return True
+    v = Videojuego.query.get(id)
+    if v:
+        db.session.delete(v)
+        db.session.commit()
+        return True
+    return False
