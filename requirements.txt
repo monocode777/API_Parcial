@@ -1,0 +1,2 @@
+flask              # Framework web
+flask-sqlalchemy   # ORM para manejar base de datos
