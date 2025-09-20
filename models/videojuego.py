@@ -1,21 +1,22 @@
-from extensions import db
+from sqlalchemy import Column, Integer, String, Float
+from models.db import Base
 
 # Definimos el modelo "Videojuego" que se guardará en la base de datos
-class Videojuego(db.Model):
+class Videojuego(Base):
     # ID único de cada videojuego
-    id = db.Column(db.Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)
 
     # Título del videojuego (obligatorio)
-    titulo = db.Column(db.String(100), nullable=False)
+    titulo = Column(String(100), nullable=False)
 
     # Género del videojuego (ej: Aventura, Acción, RPG...)
-    genero = db.Column(db.String(50), nullable=False)
+    genero = Column(String(50), nullable=False)
 
     # Plataforma donde se juega (ej: PC, PlayStation, Xbox...)
-    plataforma = db.Column(db.String(50), nullable=False)
+    plataforma = Column(String(50), nullable=False)
 
     # Calificación del videojuego (ej: 4.5 sobre 5)
-    rating = db.Column(db.Float, nullable=False)
+    rating = Column(Float, nullable=False)
 
     # Método para convertir un objeto en un diccionario (para enviarlo en JSON)
     def to_dict(self):
