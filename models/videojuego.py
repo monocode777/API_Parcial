@@ -4,6 +4,7 @@ from models.db import Base
 # Definimos el modelo "Videojuego" que se guardará en la base de datos
 class Videojuego(Base):
     # ID único de cada videojuego
+    __tablename__ = "video_juegos"
     id = Column(Integer, primary_key=True)
 
     # Título del videojuego (obligatorio)
