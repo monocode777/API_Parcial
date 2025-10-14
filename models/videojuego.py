@@ -3,6 +3,8 @@ from models.db import Base
 
 # Definimos el modelo "Videojuego" que se guardará en la base de datos
 class Videojuego(Base):
+    __tablename__ = 'videojuegos'  # ← Esta línea es necesaria
+
     # ID único de cada videojuego
     id = Column(Integer, primary_key=True)
 

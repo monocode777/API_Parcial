@@ -103,7 +103,8 @@ def delete_user(user_id):
     user = service.delete_user(user_id)
     if user:
         return jsonify({'message': 'Usuario eliminado correctamente'}), 200
-    return jsonify({'error': 'Usuario no encontrado'}), 404from services.users_services import UsersService
+    return jsonify({'error': 'Usuario no encontrado'}), 404
+from services.users_services import UsersService
 from flask import Blueprint, request, jsonify
 
 from config.database import get_db_session

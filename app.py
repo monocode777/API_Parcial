@@ -1,15 +1,12 @@
 from flask import Flask
-from config import Config
+from config.config import Config
 from config.jwt import *
 from flask_jwt_extended import JWTManager
 from extensions import db
-from controllers.videojuegos_controller import videojuegos_bp
-
 from flask import Flask
-from controllers.band_controller import band_bp
+from controllers.videojuegos_controller import videojuegos_bp
 from controllers.users_controller import user_bp
 
-app = Flask(__name__)
 
 app = Flask(__name__)
 
