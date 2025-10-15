@@ -55,3 +55,15 @@ def create_app(config_name='default'):
 if __name__ == '__main__':
     app = create_app()
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+    # ... (todo el código anterior)
+
+if __name__ == '__main__':
+    import os
+    app = create_app()
+    
+    port = int(os.environ.get('PORT', 5000))
+    host = '0.0.0.0'
+    
+    print(f"🚀 Servidor iniciado en http://{host}:{port}")
+    app.run(host=host, port=port, debug=True)

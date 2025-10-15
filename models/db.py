@@ -1,5 +1,3 @@
-from sqlalchemy.ext.declarative import declarative_base
+from extensions import db
 
-# Base declarativa compartida por todos los modelos
-Base = declarative_base()
-
+# Este archivo puede contener funciones adicionales relacionadas con la base de datos
