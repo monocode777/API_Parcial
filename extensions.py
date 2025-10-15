@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager
 
-# Aquí se crea la instancia global de SQLAlchemy
 db = SQLAlchemy()
+jwt = JWTManager()

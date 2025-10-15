@@ -1,15 +1,14 @@
-# Configuración de JWT
-import os
+from extensions import jwt
+from models.users_model import TokenBlocklist
 
-# Clave secreta (usa una variable de entorno para mayor seguridad)
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "clave_secreta_por_defecto")
+@jwt.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload):
+    jti = jwt_payload['jti']
+    token = TokenBlocklist.query.filter_by(jti=jti).first()
+    return token is not None
 
-# Dónde se espera recibir el token (en los headers normalmente)
-JWT_TOKEN_LOCATION = ["headers"]
-
-# Tiempo de expiración del token en segundos (1 hora)
-JWT_ACCESS_TOKEN_EXPIRES = 3600
-
-# Nombre y tipo de encabezado usado para enviar el token
-JWT_HEADER_NAME = "Authorization"
-JWT_HEADER_TYPE = "Bearer"
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    from models.users_model import User
+    identity = jwt_data["sub"]
+    return User.query.get(identity)

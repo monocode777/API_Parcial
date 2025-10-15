@@ -1,38 +1,29 @@
 from models.users_model import User
+from extensions import db
 
 class UserRepository:
-    def __init__(self, db_session):
-        self.db = db_session
-
-    def get_all_users(self):
-        return self.db.query(User).all()
-
-    def get_user_by_id(self, user_id):
-        return self.db.query(User).filter_by(id=user_id).first()
-
-    def create_user(self, username, password, role="user"):
-        new_user = User(username=username, password=password, role=role)
-        self.db.add(new_user)
-        self.db.commit()
-        self.db.refresh(new_user)
-        return new_user
-
-    def update_user(self, user_id, username=None, password=None):
-        user = self.get_user_by_id(user_id)
-        if not user:
-            return None
-        if username:
-            user.username = username
-        if password:
-            user.password = password
-        self.db.commit()
-        self.db.refresh(user)
-        return user
-
-    def delete_user(self, user_id):
-        user = self.get_user_by_id(user_id)
-        if not user:
-            return None
-        self.db.delete(user)
-        self.db.commit()
-        return True
+    
+    @staticmethod
+    def find_by_email(email):
+        return User.query.filter_by(email=email).first()
+    
+    @staticmethod
+    def find_by_id(user_id):
+        return User.query.get(user_id)
+    
+    @staticmethod
+    def create_user(email, password, role='user'):
+        if UserRepository.find_by_email(email):
+            return None, "El email ya está registrado"
+        
+        user = User(email=email, role=role)
+        user.set_password(password)
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        return user, "Usuario creado exitosamente"
+    
+    @staticmethod
+    def get_all_users():
+        return User.query.all()
