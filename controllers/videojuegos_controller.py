@@ -2,7 +2,8 @@ from flask import Blueprint, request, jsonify
 from services.videojuegos_service import obtener_todos, obtener_por_id, agregar, actualizar, eliminar
 
 # Creamos un Blueprint para separar las rutas relacionadas con videojuegos
-videojuegos_bp = Blueprint("videojuegos", __name__)
+videojuegos_bp = Blueprint("videojuegos", __name__, url_prefix="/videojuegos")
+
 
 # Ruta para listar todos los videojuegos
 @videojuegos_bp.route("/", methods=["GET"])

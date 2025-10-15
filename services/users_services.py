@@ -1,6 +1,7 @@
 from repositories.users_repository import UserRepository
 from models.users_model import User
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_jwt_extended import create_access_token
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -13,9 +14,22 @@ class UsersService:
     def authenticate_user(self, username: str, password: str):
         user = self.users_repository.db.query(User).filter(User.username == username).first()
         logger.info(f"Authenticating user: {username}")
+
         if user and check_password_hash(user.password, password):
             logger.info(f"User authenticated successfully: {username}")
-            return user
+
+            # ✅ Crear token JWT con rol incluido
+            access_token = create_access_token(
+                identity={"id": user.id, "username": user.username, "role": user.role}
+            )
+
+            return {
+                "id": user.id,
+                "username": user.username,
+                "role": user.role,
+                "token": access_token
+            }
+
         logger.warning(f"Failed authentication attempt: {username}")
         return None
 
@@ -27,11 +41,10 @@ class UsersService:
         logger.info(f"Fetching user by ID: {user_id}")
         return self.users_repository.get_user_by_id(user_id)
 
-    def create_user(self, username: str, password: str):
+    def create_user(self, username: str, password: str, role="user"):
         password_hashed = generate_password_hash(password)
         logger.info(f"Creating user: {username}")
-        return self.users_repository.create_user(username, password_hashed)
-    
+        return self.users_repository.create_user(username, password_hashed, role)
 
     def update_user(self, user_id: int, username: str = None, password: str = None):
         logger.info(f"Updating user: {user_id}")
