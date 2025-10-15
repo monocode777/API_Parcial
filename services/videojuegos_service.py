@@ -1,61 +1,65 @@
-from config.database import get_db_session
 from models.videojuego import Videojuego
+from config.database import get_db_session
 
-# Obtener todos los videojuegos
 def obtener_todos():
-    session = get_db_session()
-    videojuegos = session.query(Videojuego).all()
-    data = [v.to_dict() for v in videojuegos]
-    session.close()
-    return data
+    db = get_db_session()
+    videojuegos = db.query(Videojuego).all()
+    resultado = [
+        {
+            "id": v.id,
+            "titulo": v.titulo,
+            "genero": v.genero,
+            "plataforma": v.plataforma,
+            "rating": v.rating
+        }
+        for v in videojuegos
+    ]
+    db.close()
+    return resultado
 
-# Obtener un videojuego por ID
 def obtener_por_id(id):
-    session = get_db_session()
-    v = session.query(Videojuego).get(id)
-    data = v.to_dict() if v else None
-    session.close()
-    return data
+    db = get_db_session()
+    v = db.query(Videojuego).filter(Videojuego.id == id).first()
+    db.close()
+    if v:
+        return {
+            "id": v.id,
+            "titulo": v.titulo,
+            "genero": v.genero,
+            "plataforma": v.plataforma,
+            "rating": v.rating
+        }
+    return None
 
-# Agregar un nuevo videojuego a la base de datos
 def agregar(data):
-    session = get_db_session()
-    nuevo = Videojuego(
-        titulo=data["titulo"],
-        genero=data["genero"],
-        plataforma=data["plataforma"],
-        rating=data["rating"],
-    )
-    session.add(nuevo)
-    session.commit()
-    data = nuevo.to_dict()
-    session.close()
-    return data
+    db = get_db_session()
+    nuevo = Videojuego(**data)
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    db.close()
+    return {"mensaje": "Videojuego agregado correctamente", "id": nuevo.id}
 
-# Actualizar un videojuego existente
 def actualizar(id, data):
-    session = get_db_session()
-    v = session.query(Videojuego).get(id)
-    if v:
-        v.titulo = data.get("titulo", v.titulo)
-        v.genero = data.get("genero", v.genero)
-        v.plataforma = data.get("plataforma", v.plataforma)
-        v.rating = data.get("rating", v.rating)
-        session.commit()
-        result = v.to_dict()
-    else:
-        result = None
-    session.close()
-    return result
+    db = get_db_session()
+    v = db.query(Videojuego).filter(Videojuego.id == id).first()
+    if not v:
+        db.close()
+        return None
+    for key, value in data.items():
+        setattr(v, key, value)
+    db.commit()
+    db.refresh(v)
+    db.close()
+    return {"mensaje": "Videojuego actualizado", "id": v.id}
 
-# Eliminar un videojuego
 def eliminar(id):
-    session = get_db_session()
-    v = session.query(Videojuego).get(id)
-    if v:
-        session.delete(v)
-        session.commit()
-        session.close()
-        return True
-    session.close()
-    return False
+    db = get_db_session()
+    v = db.query(Videojuego).filter(Videojuego.id == id).first()
+    if not v:
+        db.close()
+        return False
+    db.delete(v)
+    db.commit()
+    db.close()
+    return True
