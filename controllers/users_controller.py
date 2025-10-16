@@ -1,5 +1,11 @@
-from services.users_services import UsersService
-from flask import Blueprint, request, jsonify
+from flask import request, jsonify
+from flask_jwt_extended import (
+    create_access_token, create_refresh_token, 
+    jwt_required, get_jwt_identity, get_jwt
+)
+from services.users_services import UserService
+from models.users_model import TokenBlocklist
+from extensions import db
 
 from config.database import get_db_session
 

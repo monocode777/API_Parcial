@@ -1,44 +1,51 @@
-from extensions import db
 from models.videojuego import Videojuego
+from extensions import db
 
-# Obtener todos los videojuegos
-def obtener_todos():
-    return [v.to_dict() for v in Videojuego.query.all()]
-
-# Obtener un videojuego por ID
-def obtener_por_id(id):
-    v = Videojuego.query.get(id)
-    return v.to_dict() if v else None
-
-# Agregar un nuevo videojuego a la base de datos
-def agregar(data):
-    nuevo = Videojuego(
-        titulo=data["titulo"],
-        genero=data["genero"],
-        plataforma=data["plataforma"],
-        rating=data["rating"],
-    )
-    db.session.add(nuevo)   # lo añadimos a la sesión
-    db.session.commit()     # guardamos en la base de datos
-    return nuevo.to_dict()
-
-# Actualizar un videojuego existente
-def actualizar(id, data):
-    v = Videojuego.query.get(id)
-    if v:
-        v.titulo = data.get("titulo", v.titulo)
-        v.genero = data.get("genero", v.genero)
-        v.plataforma = data.get("plataforma", v.plataforma)
-        v.rating = data.get("rating", v.rating)
+class VideojuegoService:
+    
+    @staticmethod
+    def get_all_videojuegos():
+        return Videojuego.query.all()
+    
+    @staticmethod
+    def get_videojuego_by_id(videojuego_id):
+        return Videojuego.query.get(videojuego_id)
+    
+    @staticmethod
+    def create_videojuego(titulo, desarrollador, año_lanzamiento=None, genero=None, plataforma=None, precio=None):
+        videojuego = Videojuego(
+            titulo=titulo,
+            desarrollador=desarrollador,
+            año_lanzamiento=año_lanzamiento,
+            genero=genero,
+            plataforma=plataforma,
+            precio=precio
+        )
+        
+        db.session.add(videojuego)
         db.session.commit()
-        return v.to_dict()
-    return None
-
-# Eliminar un videojuego
-def eliminar(id):
-    v = Videojuego.query.get(id)
-    if v:
-        db.session.delete(v)
+        
+        return videojuego
+    
+    @staticmethod
+    def update_videojuego(videojuego_id, **kwargs):
+        videojuego = Videojuego.query.get(videojuego_id)
+        if not videojuego:
+            return None, "Videojuego no encontrado"
+        
+        for key, value in kwargs.items():
+            if hasattr(videojuego, key):
+                setattr(videojuego, key, value)
+        
         db.session.commit()
-        return True
-    return False
+        return videojuego, "Videojuego actualizado"
+    
+    @staticmethod
+    def delete_videojuego(videojuego_id):
+        videojuego = Videojuego.query.get(videojuego_id)
+        if not videojuego:
+            return False, "Videojuego no encontrado"
+        
+        db.session.delete(videojuego)
+        db.session.commit()
+        return True, "Videojuego eliminado"

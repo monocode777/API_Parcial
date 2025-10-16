@@ -1,2 +1,5 @@
-flask              # Framework web
-flask-sqlalchemy   # ORM para manejar base de datos
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-JWT-Extended==4.5.3
+Werkzeug==2.3.7
+python-dotenv==1.0.0
