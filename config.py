@@ -21,7 +21,8 @@ class ProductionConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///test_videojuegos.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///instance/videojuegos.db'
+
 
 config = {
     'development': DevelopmentConfig,

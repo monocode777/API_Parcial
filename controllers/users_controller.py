@@ -48,7 +48,7 @@ class UsersController:
             if not user:
                 return jsonify({'error': message}), 401
             
-            access_token = create_access_token(identity=user.id, additional_claims={'role': user.role})
+            access_token = create_access_token(identity=str(user.id), additional_claims={"role": user.role})
             refresh_token = create_refresh_token(identity=user.id)
             
             return jsonify({
