@@ -1,20 +1,20 @@
-# API de Videojuegos con Autenticación JWT
+# API_Parcial
 
-API REST para gestión de videojuegos con sistema de autenticación JWT y autorización por roles.
+# 🎮 API REST de Videojuegos (Flask + SQLAlchemy)
 
-## Características
+Una API REST desarrollada en **Python** con **Flask** y **SQLAlchemy** para gestionar videojuegos.  
+Permite realizar operaciones **CRUD** (Crear, Leer, Actualizar y Eliminar) sobre una base de datos.  
 
--  Autenticación JWT con tokens de acceso y refresh
--  Autorización por roles (user/admin)
--  Hash seguro de contraseñas
--  Lista negra de tokens (logout)
--  CRUD completo de videojuegos
--  Documentación completa
--  Pruebas unitarias
+Ideal como proyecto educativo para aprender a construir APIs modernas con Flask.
 
-## Instalación
+---
 
-1. Clonar el repositorio:
-```bash
-git clone <url-del-repositorio>
-cd api-videojuegos
+##  Características principales
+- ✔️ API REST con endpoints bien estructurados  
+- ✔️ Manejo de base de datos con SQLAlchemy  
+- ✔️ Arquitectura modular (controllers, services, models, config)  
+- ✔️ Compatible con **Postman** y **cURL** para pruebas  
+- ✔️ Base de datos SQLite lista para desarrollo local
+- ✔️Autenticación JWT con tokens de acceso y refresh
+- ✔️Autorización por roles (user/admin)
+- ✔️Hash seguro de contraseñas
