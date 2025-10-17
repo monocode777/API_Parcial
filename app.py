@@ -283,8 +283,8 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     host = '0.0.0.0'
     
-    print(f"🚀 Servidor iniciado en http://{host}:{port}")
-    print("📚 Endpoints disponibles:")
+    print(f" Servidor iniciado en http://{host}:{port}")
+    print(" Endpoints disponibles:")
     print("   GET  / - Página principal")
     print("   GET  /api/health - Estado de la API")
     print("   POST /api/auth/register - Registrar usuario")
