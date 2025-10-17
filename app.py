@@ -177,7 +177,7 @@ def init_db():
             ]
             db.session.add_all(videojuegos)
             db.session.commit()
-            print("✅ Videojuegos de ejemplo creados")
+            print(" Videojuegos de ejemplo creados")
 
 if __name__ == '__main__':
     init_db()
