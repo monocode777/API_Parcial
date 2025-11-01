@@ -1,3 +1,4 @@
+from flask import render_template
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
@@ -39,6 +40,13 @@ class Videojuego(db.Model):
     precio = db.Column(db.Float)
 
 # Rutas de Autenticación
+@app.route('/login')
+def login_page():
+    return render_template('login.html')
+
+@app.route('/register')
+def register_page():
+    return render_template('register.html')
 @app.route('/api/auth/register', methods=['POST'])
 def register():
     try:
@@ -125,6 +133,7 @@ def profile():
 
 # Rutas de Videojuegos
 @app.route('/api/videojuegos', methods=['GET'])
+@jwt_required()
 def get_videojuegos():
     try:
         videojuegos = Videojuego.query.all()
