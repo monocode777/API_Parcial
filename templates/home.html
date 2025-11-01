@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Dashboard - Videojuegos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* pequeño ajuste local para la lista */
+        .games-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 16px; }
+        .game-card { background: #fff; padding: 12px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h1>Dashboard</h1>
+            <div>
+                <span id="userEmail"></span>
+                <button onclick="logout()" style="margin-left:10px;">Cerrar sesión</button>
+            </div>
+        </header>
+
+        <div id="alert" class="alert" style="display:none"></div>
+
+        <div id="adminControls" style="margin-bottom:12px; display:none;">
+            <button onclick="showAddForm()">Agregar videojuego</button>
+        </div>
+
+        <div id="addForm" style="display:none; margin-bottom:16px;">
+            <h3>Agregar Videojuego</h3>
+            <form id="gameForm" onsubmit="handleAdd(event)">
+                <input id="titulo" placeholder="Título" required>
+                <input id="desarrollador" placeholder="Desarrollador" required>
+                <input id="anio" type="number" placeholder="Año de lanzamiento">
+                <input id="genero" placeholder="Género">
+                <input id="precio" type="number" step="0.01" placeholder="Precio">
+                <button type="submit">Guardar</button>
+                <button type="button" onclick="hideAddForm()">Cancelar</button>
+            </form>
+        </div>
+
+        <section>
+            <h2>Videojuegos</h2>
+            <div id="gamesContainer" class="games-list"></div>
+        </section>
+    </div>
+
+    <script>
+        // Comprobar token y mostrar dashboard
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            document.getElementById('userEmail').textContent = user.email || '';
+            if (user.role === 'admin') {
+                document.getElementById('adminControls').style.display = 'block';
+            }
+
+            loadGames();
+        });
+
+        async function loadGames() {
+            try {
+                const res = await fetch('/api/videojuegos', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (res.status === 401) {
+                    logout();
+                    return;
+                }
+                const data = await res.json();
+                const container = document.getElementById('gamesContainer');
+                container.innerHTML = '';
+                (data.videojuegos || []).forEach(g => {
+                    const el = document.createElement('div'); el.className = 'game-card';
+                    el.innerHTML = `<h4>${g.titulo}</h4><p><strong>Dev:</strong> ${g.desarrollador}</p><p><strong>Año:</strong> ${g.año_lanzamiento || 'N/A'}</p><p><strong>Género:</strong> ${g.genero || 'N/A'}</p><p><strong>Precio:</strong> ${g.precio != null ? '$'+g.precio : 'N/A'}</p>`;
+                    container.appendChild(el);
+                });
+            } catch (err) {
+                showAlert('Error al cargar videojuegos');
+            }
+        }
+
+        function showAddForm(){ document.getElementById('addForm').style.display='block'; }
+        function hideAddForm(){ document.getElementById('addForm').style.display='none'; document.getElementById('gameForm').reset(); }
+
+        async function handleAdd(e){
+            e.preventDefault();
+            const payload = {
+                titulo: document.getElementById('titulo').value,
+                desarrollador: document.getElementById('desarrollador').value,
+                año_lanzamiento: parseInt(document.getElementById('anio').value) || null,
+                genero: document.getElementById('genero').value || null,
+                precio: parseFloat(document.getElementById('precio').value) || null
+            };
+
+            try{
+                const res = await fetch('/api/videojuegos', {
+                    method: 'POST',
+                    headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showAlert('Videojuego creado', 'success');
+                    hideAddForm();
+                    loadGames();
+                } else {
+                    showAlert(data.error || 'Error al crear');
+                }
+            } catch(err){ showAlert('Error de conexión'); }
+        }
+
+        function showAlert(msg, type = 'error'){ const a = document.getElementById('alert'); a.textContent = msg; a.className = 'alert ' + (type==='success'? 'alert-success':'alert-error'); a.style.display='block'; setTimeout(()=>a.style.display='none',3000); }
+
+        function logout(){ localStorage.removeItem('token'); localStorage.removeItem('user'); window.location.href='/login'; }
+    </script>
+</body>
+</html>

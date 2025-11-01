@@ -47,6 +47,16 @@ def login_page():
 @app.route('/register')
 def register_page():
     return render_template('register.html')
+
+@app.route('/home')
+def dashboard_page():
+    return render_template('home.html')
+
+
+@app.route('/videojuegos')
+def videojuegos_page():
+    # Página del frontend para gestionar videojuegos (requiere token en cliente)
+    return render_template('videojuegos.html')
 @app.route('/api/auth/register', methods=['POST'])
 def register():
     try:
@@ -114,7 +124,13 @@ def login():
 @jwt_required()
 def profile():
     try:
+        # get_jwt_identity() puede devolver una cadena si el token guarda el id como str
         current_user_id = get_jwt_identity()
+        try:
+            current_user_id = int(current_user_id)
+        except Exception:
+            # si no pudo castear, usar tal cual (SQLAlchemy acepta str para get también en algunos casos)
+            pass
         user = User.query.get(current_user_id)
         
         if not user:
@@ -186,6 +202,69 @@ def create_videojuego():
             }
         }), 201
         
+    except Exception as e:
+        return jsonify({'error': 'Error interno del servidor'}), 500
+
+
+@app.route('/api/videojuegos/<int:videojuego_id>', methods=['DELETE'])
+@jwt_required()
+def delete_videojuego(videojuego_id):
+    try:
+        claims = get_jwt()
+        if claims.get('role') != 'admin':
+            return jsonify({'error': 'Se requieren permisos de administrador'}), 403
+
+        videojuego = Videojuego.query.get(videojuego_id)
+        if not videojuego:
+            return jsonify({'error': 'Videojuego no encontrado'}), 404
+
+        db.session.delete(videojuego)
+        db.session.commit()
+
+        return jsonify({'message': 'Videojuego eliminado exitosamente'}), 200
+    except Exception as e:
+        return jsonify({'error': 'Error interno del servidor'}), 500
+
+
+@app.route('/api/videojuegos/<int:videojuego_id>', methods=['PUT'])
+@jwt_required()
+def update_videojuego(videojuego_id):
+    try:
+        claims = get_jwt()
+        if claims.get('role') != 'admin':
+            return jsonify({'error': 'Se requieren permisos de administrador'}), 403
+
+        videojuego = Videojuego.query.get(videojuego_id)
+        if not videojuego:
+            return jsonify({'error': 'Videojuego no encontrado'}), 404
+
+        data = request.get_json() or {}
+
+        # Actualizar solo campos presentes
+        if 'titulo' in data:
+            videojuego.titulo = data.get('titulo')
+        if 'desarrollador' in data:
+            videojuego.desarrollador = data.get('desarrollador')
+        if 'año_lanzamiento' in data:
+            videojuego.año_lanzamiento = data.get('año_lanzamiento')
+        if 'genero' in data:
+            videojuego.genero = data.get('genero')
+        if 'precio' in data:
+            videojuego.precio = data.get('precio')
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Videojuego actualizado exitosamente',
+            'videojuego': {
+                'id': videojuego.id,
+                'titulo': videojuego.titulo,
+                'desarrollador': videojuego.desarrollador,
+                'año_lanzamiento': videojuego.año_lanzamiento,
+                'genero': videojuego.genero,
+                'precio': videojuego.precio
+            }
+        }), 200
     except Exception as e:
         return jsonify({'error': 'Error interno del servidor'}), 500
 
