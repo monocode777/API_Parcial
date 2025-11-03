@@ -12,30 +12,36 @@
 </head>
 <body>
     <div class="container">
-        <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div class="dashboard-card">
+        <header>
             <h1>Dashboard</h1>
-            <div>
+            <div class="header-right">
                 <span id="userEmail"></span>
-                <button onclick="logout()" style="margin-left:10px;">Cerrar sesión</button>
+                <button onclick="logout()">Cerrar sesión</button>
             </div>
         </header>
 
-        <div id="alert" class="alert" style="display:none"></div>
+        <div id="alert" class="alert"></div>
 
-        <div id="adminControls" style="margin-bottom:12px; display:none;">
-            <button onclick="showAddForm()">Agregar videojuego</button>
+        <div id="adminControls">
+            <button id="btnAdd" onclick="showAddForm()">Agregar videojuego</button>
+            <button id="btnSample" onclick="createSample()" class="action-secondary">Crear ejemplo</button>
+            <small id="adminNote" style="margin-left:8px;color:#666;display:none;">(Solo administradores pueden crear/editar/borrar)</small>
         </div>
 
-        <div id="addForm" style="display:none; margin-bottom:16px;">
+        <div id="addForm" style="display:none;" >
             <h3>Agregar Videojuego</h3>
             <form id="gameForm" onsubmit="handleAdd(event)">
                 <input id="titulo" placeholder="Título" required>
                 <input id="desarrollador" placeholder="Desarrollador" required>
+                <input id="imagen" type="url" placeholder="URL de imagen (opcional)">
                 <input id="anio" type="number" placeholder="Año de lanzamiento">
                 <input id="genero" placeholder="Género">
                 <input id="precio" type="number" step="0.01" placeholder="Precio">
-                <button type="submit">Guardar</button>
-                <button type="button" onclick="hideAddForm()">Cancelar</button>
+                <div style="margin-top:8px">
+                    <button type="submit">Guardar</button>
+                    <button type="button" onclick="hideAddForm()" class="action-secondary">Cancelar</button>
+                </div>
             </form>
         </div>
 
@@ -43,6 +49,7 @@
             <h2>Videojuegos</h2>
             <div id="gamesContainer" class="games-list"></div>
         </section>
+        </div> <!-- .dashboard-card -->
     </div>
 
     <script>
@@ -56,8 +63,18 @@
 
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             document.getElementById('userEmail').textContent = user.email || '';
+            // Mostrar controles de administración en el DOM; habilitarlos sólo para admins
+            const adminControls = document.getElementById('adminControls');
+            adminControls.style.display = 'block';
+            const adminNote = document.getElementById('adminNote');
             if (user.role === 'admin') {
-                document.getElementById('adminControls').style.display = 'block';
+                // admin: botones habilitados
+                adminNote.style.display = 'none';
+            } else {
+                // no admin: deshabilitar botones y mostrar nota
+                const btns = adminControls.querySelectorAll('button');
+                btns.forEach(b => { b.setAttribute('disabled','disabled'); b.classList.add('action-disabled'); });
+                adminNote.style.display = 'inline';
             }
 
             loadGames();
@@ -75,9 +92,28 @@
                 const data = await res.json();
                 const container = document.getElementById('gamesContainer');
                 container.innerHTML = '';
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
                 (data.videojuegos || []).forEach(g => {
                     const el = document.createElement('div'); el.className = 'game-card';
-                    el.innerHTML = `<h4>${g.titulo}</h4><p><strong>Dev:</strong> ${g.desarrollador}</p><p><strong>Año:</strong> ${g.año_lanzamiento || 'N/A'}</p><p><strong>Género:</strong> ${g.genero || 'N/A'}</p><p><strong>Precio:</strong> ${g.precio != null ? '$'+g.precio : 'N/A'}</p>`;
+                    let html = '';
+                    // imagen (si existe)
+                    const imgUrl = g.imagen || 'https://via.placeholder.com/400x220?text=Sin+imagen';
+                    html += `<div style="width:100%;height:160px;overflow:hidden;border-radius:6px;margin-bottom:8px;"><img src="${imgUrl}" alt="${g.titulo}" style="width:100%;height:100%;object-fit:cover;display:block;"></div>`;
+                    html += `<h4>${g.titulo}</h4>`;
+                    html += `<p><strong>Dev:</strong> ${g.desarrollador}</p>`;
+                    html += `<p><strong>Año:</strong> ${g.año_lanzamiento || 'N/A'}</p>`;
+                    html += `<p><strong>Género:</strong> ${g.genero || 'N/A'}</p>`;
+                    html += `<p><strong>Precio:</strong> ${g.precio != null ? '$'+g.precio : 'N/A'}</p>`;
+
+                    // Si es admin, mostrar acciones de editar/borrar
+                    if (user.role === 'admin') {
+                        html += `<div class="game-actions">`;
+                        html += `<button class="action-secondary" onclick="editGame(${g.id})">Editar</button>`;
+                        html += `<button class="action-danger" onclick="deleteGame(${g.id})">Eliminar</button>`;
+                        html += `</div>`;
+                    }
+
+                    el.innerHTML = html;
                     container.appendChild(el);
                 });
             } catch (err) {
@@ -88,11 +124,72 @@
         function showAddForm(){ document.getElementById('addForm').style.display='block'; }
         function hideAddForm(){ document.getElementById('addForm').style.display='none'; document.getElementById('gameForm').reset(); }
 
+        async function deleteGame(id){
+            if(!confirm('¿Eliminar este videojuego?')) return;
+            try{
+                const res = await fetch(`/api/videojuegos/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await res.json();
+                if(res.ok){ showAlert('Videojuego eliminado', 'success'); loadGames(); }
+                else showAlert(data.error || 'Error al eliminar');
+            }catch(e){ showAlert('Error de conexión'); }
+        }
+
+        async function editGame(id){
+            try{
+                // Obtener los datos actuales desde la lista cargada o la API
+                const resGet = await fetch('/api/videojuegos', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+                const all = await resGet.json();
+                const g = (all.videojuegos || []).find(x => x.id === id);
+                if(!g){ showAlert('Videojuego no encontrado'); return; }
+
+                // Pedir nuevos valores (simple, usando prompt para mantener UI mínima)
+                const titulo = prompt('Título', g.titulo);
+                if(titulo === null) return; // cancelado
+                const desarrollador = prompt('Desarrollador', g.desarrollador);
+                if(desarrollador === null) return;
+                const anioStr = prompt('Año de lanzamiento', g.año_lanzamiento || '');
+                if(anioStr === null) return;
+                const genero = prompt('Género', g.genero || '');
+                if(genero === null) return;
+                const imagen = prompt('URL de imagen (opcional)', g.imagen || '');
+                if(imagen === null) return;
+                const precioStr = prompt('Precio', g.precio != null ? String(g.precio) : '');
+                if(precioStr === null) return;
+
+                const payload = {};
+                if(titulo !== g.titulo) payload.titulo = titulo;
+                if(desarrollador !== g.desarrollador) payload.desarrollador = desarrollador;
+                const anio = anioStr === '' ? null : parseInt(anioStr);
+                if((g.año_lanzamiento || null) !== anio) payload.año_lanzamiento = anio;
+                if(genero !== g.genero) payload.genero = genero;
+                if(imagen !== g.imagen) payload.imagen = imagen || null;
+                const precio = precioStr === '' ? null : parseFloat(precioStr);
+                if((g.precio != null ? g.precio : null) !== precio) payload.precio = precio;
+
+                // Si no hay cambios, salir
+                if(Object.keys(payload).length === 0){ showAlert('No se hicieron cambios'); return; }
+
+                const res = await fetch(`/api/videojuegos/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if(res.ok){ showAlert('Videojuego actualizado', 'success'); loadGames(); }
+                else showAlert(data.error || 'Error al actualizar');
+
+            }catch(e){ showAlert('Error de conexión'); }
+        }
+
         async function handleAdd(e){
             e.preventDefault();
             const payload = {
                 titulo: document.getElementById('titulo').value,
                 desarrollador: document.getElementById('desarrollador').value,
+                imagen: document.getElementById('imagen').value || null,
                 año_lanzamiento: parseInt(document.getElementById('anio').value) || null,
                 genero: document.getElementById('genero').value || null,
                 precio: parseFloat(document.getElementById('precio').value) || null
@@ -113,6 +210,29 @@
                     showAlert(data.error || 'Error al crear');
                 }
             } catch(err){ showAlert('Error de conexión'); }
+        }
+
+        // Crear un videojuego de ejemplo usando POST /api/videojuegos
+        async function createSample(){
+            const payload = {
+                titulo: 'Nuevo Juego (Ejemplo)',
+                desarrollador: 'Estudio Ejemplo',
+                año_lanzamiento: 2025,
+                genero: 'Demo',
+                precio: 0.00
+                ,imagen: 'https://via.placeholder.com/400x220?text=Ejemplo'
+            };
+
+            try{
+                const res = await fetch('/api/videojuegos', {
+                    method: 'POST',
+                    headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if(res.ok){ showAlert('Videojuego de ejemplo creado', 'success'); loadGames(); }
+                else showAlert(data.error || 'Error al crear ejemplo');
+            }catch(err){ showAlert('Error de conexión'); }
         }
 
         function showAlert(msg, type = 'error'){ const a = document.getElementById('alert'); a.textContent = msg; a.className = 'alert ' + (type==='success'? 'alert-success':'alert-error'); a.style.display='block'; setTimeout(()=>a.style.display='none',3000); }

@@ -5,6 +5,7 @@ from flask_jwt_extended import JWTManager, create_access_token, create_refresh_t
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
 import os
+from sqlalchemy.exc import OperationalError
 
 # Configuración
 app = Flask(__name__)
@@ -37,7 +38,9 @@ class Videojuego(db.Model):
     desarrollador = db.Column(db.String(100), nullable=False)
     año_lanzamiento = db.Column(db.Integer)
     genero = db.Column(db.String(50))
+    plataforma = db.Column(db.String(50))
     precio = db.Column(db.Float)
+    imagen = db.Column(db.String(255))
 
 # Rutas de Autenticación
 @app.route('/login')
@@ -160,7 +163,8 @@ def get_videojuegos():
                 'desarrollador': v.desarrollador,
                 'año_lanzamiento': v.año_lanzamiento,
                 'genero': v.genero,
-                'precio': v.precio
+                'precio': v.precio,
+                'imagen': getattr(v, 'imagen', None)
             } for v in videojuegos]
         }), 200
     except Exception as e:
@@ -184,7 +188,8 @@ def create_videojuego():
             desarrollador=data['desarrollador'],
             año_lanzamiento=data.get('año_lanzamiento'),
             genero=data.get('genero'),
-            precio=data.get('precio')
+            precio=data.get('precio'),
+            imagen=data.get('imagen')
         )
         
         db.session.add(videojuego)
@@ -198,7 +203,8 @@ def create_videojuego():
                 'desarrollador': videojuego.desarrollador,
                 'año_lanzamiento': videojuego.año_lanzamiento,
                 'genero': videojuego.genero,
-                'precio': videojuego.precio
+                'precio': videojuego.precio,
+                'imagen': videojuego.imagen
             }
         }), 201
         
@@ -251,6 +257,8 @@ def update_videojuego(videojuego_id):
             videojuego.genero = data.get('genero')
         if 'precio' in data:
             videojuego.precio = data.get('precio')
+        if 'imagen' in data:
+            videojuego.imagen = data.get('imagen')
 
         db.session.commit()
 
@@ -262,7 +270,8 @@ def update_videojuego(videojuego_id):
                 'desarrollador': videojuego.desarrollador,
                 'año_lanzamiento': videojuego.año_lanzamiento,
                 'genero': videojuego.genero,
-                'precio': videojuego.precio
+                'precio': videojuego.precio,
+                'imagen': videojuego.imagen
             }
         }), 200
     except Exception as e:
@@ -343,27 +352,53 @@ def not_found(error):
 # Inicializar base de datos
 def init_db():
     with app.app_context():
+        # Eliminar todas las tablas existentes
+        db.drop_all()
+        # Crear todas las tablas desde cero
         db.create_all()
         
-        # Crear usuario admin por defecto si no existe
-        admin_user = User.query.filter_by(email='admin@example.com').first()
-        if not admin_user:
-            admin = User(email='admin@example.com', role='admin')
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-            print("✅ Usuario admin creado: admin@example.com / admin123")
+        # Crear usuario admin por defecto
+        admin = User(email='admin@example.com', role='admin')
+        admin.set_password('admin123')
+        db.session.add(admin)
         
-        # Crear algunos videojuegos de ejemplo si no existen
-        if Videojuego.query.count() == 0:
-            videojuegos = [
-                Videojuego(titulo='The Legend of Zelda', desarrollador='Nintendo', año_lanzamiento=2017, genero='Aventura', precio=59.99),
-                Videojuego(titulo='God of War', desarrollador='Santa Monica Studio', año_lanzamiento=2018, genero='Acción', precio=49.99),
-                Videojuego(titulo='Minecraft', desarrollador='Mojang', año_lanzamiento=2011, genero='Sandbox', precio=26.95)
-            ]
-            db.session.add_all(videojuegos)
-            db.session.commit()
-            print(" Videojuegos de ejemplo creados")
+        # Agregar videojuegos de ejemplo
+        juegos = [
+            {
+                'titulo': 'The Legend of Zelda: Tears of the Kingdom',
+                'desarrollador': 'Nintendo',
+                'año_lanzamiento': 2023,
+                'genero': 'Acción-Aventura',
+                'plataforma': 'Nintendo Switch',
+                'precio': 59.99,
+                'imagen': 'https://assets.nintendo.com/image/upload/ar_16:9,c_lpad,w_656/b_white/f_auto/q_auto/ncom/software/switch/70010000063714/276a412988e07c4d55a2996c6d38abb408b464413b2dfeb44d2aa460b9f622e1'
+            },
+            {
+                'titulo': 'Red Dead Redemption 2',
+                'desarrollador': 'Rockstar Games',
+                'año_lanzamiento': 2018,
+                'genero': 'Acción-Aventura',
+                'plataforma': 'PS4/Xbox One/PC',
+                'precio': 49.99,
+                'imagen': 'https://upload.wikimedia.org/wikipedia/en/4/44/Red_Dead_Redemption_II.jpg'
+            },
+            {
+                'titulo': 'Cyberpunk 2077',
+                'desarrollador': 'CD Projekt Red',
+                'año_lanzamiento': 2020,
+                'genero': 'RPG',
+                'plataforma': 'PS4/Xbox One/PC',
+                'precio': 49.99,
+                'imagen': 'https://upload.wikimedia.org/wikipedia/en/9/9f/Cyberpunk_2077_box_art.jpg'
+            }
+        ]
+        
+        for juego_data in juegos:
+            juego = Videojuego(**juego_data)
+            db.session.add(juego)
+        
+        db.session.commit()
+        print("✅ Base de datos inicializada con datos de ejemplo")
 
 if __name__ == '__main__':
     init_db()

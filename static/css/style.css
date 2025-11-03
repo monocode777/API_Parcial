@@ -1,0 +1,55 @@
+/* Dashboard styles adapted to the visual theme of `login.css` */
+:root{
+    --primary-1: #667eea;
+    --primary-2: #764ba2;
+    --card-bg: rgba(255,255,255,0.95);
+    --muted: #4a5568;
+    --danger: #e53e3e;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(135deg, var(--primary-1) 0%, var(--primary-2) 100%)}
+
+/* Centrar una tarjeta como en login */
+.container{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.dashboard-card{background:var(--card-bg);padding:2rem;border-radius:1rem;box-shadow:0 0 40px rgba(0,0,0,0.12);width:100%;max-width:1000px}
+
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+header h1{margin:0;color:#2d3748;font-size:1.6rem}
+.header-right{display:flex;align-items:center;gap:12px}
+.header-right span{color:var(--muted)}
+
+button, .btn{padding:8px 12px;border-radius:8px;border:none;background:var(--primary-1);color:#fff;cursor:pointer}
+button:hover, .btn:hover{background:#5a67d8}
+
+.alert{padding:10px;margin-bottom:12px;border-radius:6px;display:none}
+.alert.alert-error{background:#ffebee;color:var(--danger);border:1px solid #ffcdd2}
+.alert.alert-success{background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9}
+
+/* Admin controls */
+#adminControls{margin-bottom:12px}
+
+/* Form styles */
+#addForm, #editForm{background:transparent;padding:0;margin-bottom:16px}
+#addForm h3, #editForm h3{margin-top:0}
+#gameForm input, #editForm input{width:100%;padding:10px;margin-bottom:8px;border:1px solid #e2e8f0;border-radius:8px}
+#gameForm button, #editForm button{margin-right:8px}
+
+/* Listado de juegos */
+.games-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.game-card{background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06);display:flex;flex-direction:column;gap:8px}
+.game-card h4{margin:0}
+.game-actions{margin-top:auto;display:flex;gap:8px}
+.action-secondary{background:transparent;color:var(--primary-1);border:1px solid rgba(102,126,234,0.18);padding:6px 10px;border-radius:6px}
+.action-danger{background:#fff6f6;color:var(--danger);border:1px solid #ffd6d6;padding:6px 10px;border-radius:6px}
+.action-secondary:hover{background:rgba(102,126,234,0.06)}
+.action-danger:hover{background:#ffe6e6}
+
+.action-disabled{opacity:0.6;pointer-events:none;border-color:#e6e6e6;background:#f7f7f7;color:#9aa0a6}
+button[disabled]{cursor:not-allowed;opacity:0.7}
+
+/* Small screens */
+@media (max-width:480px){
+    .container{padding:12px}
+    header{flex-direction:column;align-items:flex-start;gap:10px}
+}

@@ -1,7 +1,7 @@
 from extensions import db
 
 class Videojuego(db.Model):
-    __tablename__ = 'videojuegos'
+    __tablename__ = 'videojuego'
     
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(100), nullable=False)
@@ -10,8 +10,7 @@ class Videojuego(db.Model):
     genero = db.Column(db.String(50))
     plataforma = db.Column(db.String(50))
     precio = db.Column(db.Float)
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+    imagen = db.Column(db.String(500))  # URL de la imagen
     
     def to_dict(self):
         return {
@@ -22,6 +21,5 @@ class Videojuego(db.Model):
             'genero': self.genero,
             'plataforma': self.plataforma,
             'precio': self.precio,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'imagen': self.imagen
         }
