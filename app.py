@@ -1,13 +1,13 @@
 from flask import render_template
 from flask import Flask, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
+from extensions import db, jwt
 from datetime import timedelta
 import os
 from sqlalchemy.exc import OperationalError
 
 # Configuración
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'clave-secreta-codespaces'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///videojuegos.db'
@@ -15,32 +15,14 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or 'jwt-secreto-codespaces'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 
-# Inicializar extensiones
-db = SQLAlchemy(app)
-jwt = JWTManager(app)
+# Inicializar extensiones (usar extensiones centralizadas)
+db.init_app(app)
+jwt.init_app(app)
 
 # Modelos
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(20), default='user')
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-class Videojuego(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    titulo = db.Column(db.String(100), nullable=False)
-    desarrollador = db.Column(db.String(100), nullable=False)
-    año_lanzamiento = db.Column(db.Integer)
-    genero = db.Column(db.String(50))
-    plataforma = db.Column(db.String(50))
-    precio = db.Column(db.Float)
-    imagen = db.Column(db.String(255))
+# Importar modelos desde el paquete models
+from models.users_model import User
+from models.videojuego import Videojuego
 
 # Rutas de Autenticación
 @app.route('/login')
