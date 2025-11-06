@@ -78,7 +78,7 @@ def home():
             </style>
         </head>
         <body>
-            <h1>🚀 API de Videojuegos Funcionando</h1>
+            <h1> API de Videojuegos Funcionando</h1>
             <p>La API está corriendo correctamente. Prueba estos endpoints:</p>
             
             <div class="endpoint">
@@ -131,7 +131,7 @@ def init_db():
         admin.set_password('admin123')
         db.session.add(admin)
         
-        # Agregar videojuegos de ejemplo
+        # Agregar 10 videojuegos de ejemplo con imágenes
         juegos = [
             {
                 'titulo': 'The Legend of Zelda: Tears of the Kingdom',
@@ -159,15 +159,86 @@ def init_db():
                 'plataforma': 'PS4/Xbox One/PC',
                 'precio': 49.99,
                 'imagen': 'https://upload.wikimedia.org/wikipedia/en/9/9f/Cyberpunk_2077_box_art.jpg'
+            },
+            {
+                'titulo': 'Elden Ring',
+                'desarrollador': 'FromSoftware',
+                'año_lanzamiento': 2022,
+                'genero': 'RPG de Acción',
+                'plataforma': 'PS5/Xbox Series X/PC',
+                'precio': 59.99,
+                'imagen': 'https://upload.wikimedia.org/wikipedia/en/b/b9/Elden_Ring_Box_art.jpg'
+            },
+            {
+                'titulo': 'God of War Ragnarök',
+                'desarrollador': 'Santa Monica Studio',
+                'año_lanzamiento': 2022,
+                'genero': 'Acción-Aventura',
+                'plataforma': 'PS4/PS5',
+                'precio': 69.99,
+                'imagen': 'https://upload.wikimedia.org/wikipedia/en/e/ee/God_of_War_Ragnar%C3%B6k_cover.jpg'
+            },
+            {
+                'titulo': 'Hollow Knight',
+                'desarrollador': 'Team Cherry',
+                'año_lanzamiento': 2017,
+                'genero': 'Metroidvania',
+                'plataforma': 'Switch/PC',
+                'precio': 14.99,
+                'imagen': 'https://upload.wikimedia.org/wikipedia/en/6/6b/Hollow_Knight_cover.jpg'
+            },
+            {
+                'titulo': 'Stardew Valley',
+                'desarrollador': 'ConcernedApe',
+                'año_lanzamiento': 2016,
+                'genero': 'Simulación',
+                'plataforma': 'PC/Switch/Consolas',
+                'precio': 14.99,
+                'imagen': 'https://upload.wikimedia.org/wikipedia/en/0/02/Stardew_Valley_cover_art.jpg'
+            },
+            {
+                'titulo': 'Hades',
+                'desarrollador': 'Supergiant Games',
+                'año_lanzamiento': 2020,
+                'genero': 'Roguelike',
+                'plataforma': 'PC/Consolas',
+                'precio': 24.99,
+                'imagen': 'https://upload.wikimedia.org/wikipedia/en/4/4b/Hades_cover_art.jpg'
+            },
+            {
+                'titulo': 'The Last of Us Part II',
+                'desarrollador': 'Naughty Dog',
+                'año_lanzamiento': 2020,
+                'genero': 'Acción-Aventura',
+                'plataforma': 'PS4',
+                'precio': 59.99,
+                'imagen': 'https://upload.wikimedia.org/wikipedia/en/3/3d/The_Last_of_Us_Part_II_cover_art.jpg'
+            },
+            {
+                'titulo': 'Mario Kart 8 Deluxe',
+                'desarrollador': 'Nintendo',
+                'año_lanzamiento': 2017,
+                'genero': 'Carreras',
+                'plataforma': 'Nintendo Switch',
+                'precio': 59.99,
+                'imagen': 'https://upload.wikimedia.org/wikipedia/en/0/08/MarioKart8Boxart.jpg'
             }
         ]
-        
+
         for juego_data in juegos:
+            # Evitar duplicados por título
+            existing = Videojuego.query.filter_by(titulo=juego_data['titulo']).first()
+            if existing:
+                # actualizar imagen si está vacía
+                if (not existing.imagen) and juego_data.get('imagen'):
+                    existing.imagen = juego_data.get('imagen')
+                    db.session.add(existing)
+                continue
             juego = Videojuego(**juego_data)
             db.session.add(juego)
         
         db.session.commit()
-        print("✅ Base de datos inicializada con datos de ejemplo")
+        print(" Base de datos inicializada con datos de ejemplo")
 
 if __name__ == '__main__':
     init_db()
