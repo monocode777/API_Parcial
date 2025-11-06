@@ -19,245 +19,32 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 db.init_app(app)
 jwt.init_app(app)
 
-# Modelos
-# Importar modelos desde el paquete models
 from models.users_model import User
 from models.videojuego import Videojuego
 
-# Rutas de Autenticación
-@app.route('/login')
-def login_page():
-    return render_template('login.html')
+# Registrar rutas usando los controllers
+from controllers.users_controller import UsersController
+from controllers.videojuegos_controller import VideojuegosController
 
-@app.route('/register')
-def register_page():
-    return render_template('register.html')
+# Rutas del frontend (render templates)
+app.add_url_rule('/login', endpoint='login_page', view_func=lambda: render_template('login.html'), methods=['GET'])
+app.add_url_rule('/register', endpoint='register_page', view_func=lambda: render_template('register.html'), methods=['GET'])
+app.add_url_rule('/home', endpoint='dashboard_page', view_func=lambda: render_template('home.html'), methods=['GET'])
+app.add_url_rule('/videojuegos', endpoint='videojuegos_page', view_func=lambda: render_template('videojuegos.html'), methods=['GET'])
 
-@app.route('/home')
-def dashboard_page():
-    return render_template('home.html')
+# Rutas de autenticación (UsersController)
+app.add_url_rule('/api/auth/register', endpoint='api_register', view_func=UsersController.register, methods=['POST'])
+app.add_url_rule('/api/auth/login', endpoint='api_login', view_func=UsersController.login, methods=['POST'])
+app.add_url_rule('/api/auth/refresh', endpoint='api_refresh', view_func=UsersController.refresh, methods=['POST'])
+app.add_url_rule('/api/auth/logout', endpoint='api_logout', view_func=UsersController.logout, methods=['POST'])
+app.add_url_rule('/api/auth/profile', endpoint='api_profile', view_func=UsersController.profile, methods=['GET'])
 
-
-@app.route('/videojuegos')
-def videojuegos_page():
-    # Página del frontend para gestionar videojuegos (requiere token en cliente)
-    return render_template('videojuegos.html')
-@app.route('/api/auth/register', methods=['POST'])
-def register():
-    try:
-        data = request.get_json()
-        email = data.get('email')
-        password = data.get('password')
-        
-        if not email or not password:
-            return jsonify({'error': 'Email y contraseña son requeridos'}), 400
-        
-        # Verificar si el usuario ya existe
-        if User.query.filter_by(email=email).first():
-            return jsonify({'error': 'El email ya está registrado'}), 400
-        
-        # Crear nuevo usuario
-        user = User(email=email)
-        user.set_password(password)
-        
-        db.session.add(user)
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Usuario registrado exitosamente',
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'role': user.role
-            }
-        }), 201
-        
-    except Exception as e:
-        return jsonify({'error': 'Error interno del servidor'}), 500
-
-@app.route('/api/auth/login', methods=['POST'])
-def login():
-    try:
-        data = request.get_json()
-        email = data.get('email')
-        password = data.get('password')
-        
-        if not email or not password:
-            return jsonify({'error': 'Email y contraseña son requeridos'}), 400
-        
-        user = User.query.filter_by(email=email).first()
-        
-        if not user or not user.check_password(password):
-            return jsonify({'error': 'Credenciales inválidas'}), 401
-        
-        access_token = create_access_token(identity=str(user.id), additional_claims={'role': user.role})
-        
-        return jsonify({
-            'message': 'Login exitoso',
-            'access_token': access_token,
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'role': user.role
-            }
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': 'Error interno del servidor'}), 500
-
-@app.route('/api/auth/profile', methods=['GET'])
-@jwt_required()
-def profile():
-    try:
-        # get_jwt_identity() puede devolver una cadena si el token guarda el id como str
-        current_user_id = get_jwt_identity()
-        try:
-            current_user_id = int(current_user_id)
-        except Exception:
-            # si no pudo castear, usar tal cual (SQLAlchemy acepta str para get también en algunos casos)
-            pass
-        user = User.query.get(current_user_id)
-        
-        if not user:
-            return jsonify({'error': 'Usuario no encontrado'}), 404
-        
-        return jsonify({
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'role': user.role
-            }
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': 'Error interno del servidor'}), 500
-
-# Rutas de Videojuegos
-@app.route('/api/videojuegos', methods=['GET'])
-@jwt_required()
-def get_videojuegos():
-    try:
-        videojuegos = Videojuego.query.all()
-        return jsonify({
-            'videojuegos': [{
-                'id': v.id,
-                'titulo': v.titulo,
-                'desarrollador': v.desarrollador,
-                'año_lanzamiento': v.año_lanzamiento,
-                'genero': v.genero,
-                'precio': v.precio,
-                'imagen': getattr(v, 'imagen', None)
-            } for v in videojuegos]
-        }), 200
-    except Exception as e:
-        return jsonify({'error': 'Error interno del servidor'}), 500
-
-@app.route('/api/videojuegos', methods=['POST'])
-@jwt_required()
-def create_videojuego():
-    try:
-        claims = get_jwt()
-        if claims.get('role') != 'admin':
-            return jsonify({'error': 'Se requieren permisos de administrador'}), 403
-        
-        data = request.get_json()
-        
-        if not data.get('titulo') or not data.get('desarrollador'):
-            return jsonify({'error': 'Título y desarrollador son requeridos'}), 400
-        
-        videojuego = Videojuego(
-            titulo=data['titulo'],
-            desarrollador=data['desarrollador'],
-            año_lanzamiento=data.get('año_lanzamiento'),
-            genero=data.get('genero'),
-            precio=data.get('precio'),
-            imagen=data.get('imagen')
-        )
-        
-        db.session.add(videojuego)
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Videojuego creado exitosamente',
-            'videojuego': {
-                'id': videojuego.id,
-                'titulo': videojuego.titulo,
-                'desarrollador': videojuego.desarrollador,
-                'año_lanzamiento': videojuego.año_lanzamiento,
-                'genero': videojuego.genero,
-                'precio': videojuego.precio,
-                'imagen': videojuego.imagen
-            }
-        }), 201
-        
-    except Exception as e:
-        return jsonify({'error': 'Error interno del servidor'}), 500
-
-
-@app.route('/api/videojuegos/<int:videojuego_id>', methods=['DELETE'])
-@jwt_required()
-def delete_videojuego(videojuego_id):
-    try:
-        claims = get_jwt()
-        if claims.get('role') != 'admin':
-            return jsonify({'error': 'Se requieren permisos de administrador'}), 403
-
-        videojuego = Videojuego.query.get(videojuego_id)
-        if not videojuego:
-            return jsonify({'error': 'Videojuego no encontrado'}), 404
-
-        db.session.delete(videojuego)
-        db.session.commit()
-
-        return jsonify({'message': 'Videojuego eliminado exitosamente'}), 200
-    except Exception as e:
-        return jsonify({'error': 'Error interno del servidor'}), 500
-
-
-@app.route('/api/videojuegos/<int:videojuego_id>', methods=['PUT'])
-@jwt_required()
-def update_videojuego(videojuego_id):
-    try:
-        claims = get_jwt()
-        if claims.get('role') != 'admin':
-            return jsonify({'error': 'Se requieren permisos de administrador'}), 403
-
-        videojuego = Videojuego.query.get(videojuego_id)
-        if not videojuego:
-            return jsonify({'error': 'Videojuego no encontrado'}), 404
-
-        data = request.get_json() or {}
-
-        # Actualizar solo campos presentes
-        if 'titulo' in data:
-            videojuego.titulo = data.get('titulo')
-        if 'desarrollador' in data:
-            videojuego.desarrollador = data.get('desarrollador')
-        if 'año_lanzamiento' in data:
-            videojuego.año_lanzamiento = data.get('año_lanzamiento')
-        if 'genero' in data:
-            videojuego.genero = data.get('genero')
-        if 'precio' in data:
-            videojuego.precio = data.get('precio')
-        if 'imagen' in data:
-            videojuego.imagen = data.get('imagen')
-
-        db.session.commit()
-
-        return jsonify({
-            'message': 'Videojuego actualizado exitosamente',
-            'videojuego': {
-                'id': videojuego.id,
-                'titulo': videojuego.titulo,
-                'desarrollador': videojuego.desarrollador,
-                'año_lanzamiento': videojuego.año_lanzamiento,
-                'genero': videojuego.genero,
-                'precio': videojuego.precio,
-                'imagen': videojuego.imagen
-            }
-        }), 200
-    except Exception as e:
-        return jsonify({'error': 'Error interno del servidor'}), 500
+# Rutas de videojuegos (VideojuegosController)
+app.add_url_rule('/api/videojuegos', endpoint='get_videojuegos', view_func=VideojuegosController.get_videojuegos, methods=['GET'])
+app.add_url_rule('/api/videojuegos', endpoint='create_videojuego', view_func=VideojuegosController.create_videojuego, methods=['POST'])
+app.add_url_rule('/api/videojuegos/<int:videojuego_id>', endpoint='get_videojuego', view_func=VideojuegosController.get_videojuego, methods=['GET'])
+app.add_url_rule('/api/videojuegos/<int:videojuego_id>', endpoint='update_videojuego', view_func=VideojuegosController.update_videojuego, methods=['PUT'])
+app.add_url_rule('/api/videojuegos/<int:videojuego_id>', endpoint='delete_videojuego', view_func=VideojuegosController.delete_videojuego, methods=['DELETE'])
 
 # Ruta de salud
 @app.route('/api/health', methods=['GET'])
