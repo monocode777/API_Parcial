@@ -1,13 +1,10 @@
-from flask import render_template
-from flask import Flask, jsonify, request
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
+from flask import Flask, jsonify
+from flask_cors import CORS
 from extensions import db, jwt
 from datetime import timedelta
 import os
-from sqlalchemy.exc import OperationalError
 
 # Configuración
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'clave-secreta-codespaces'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///videojuegos.db'
@@ -15,243 +12,81 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or 'jwt-secreto-codespaces'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 
-# Inicializar extensiones (usar extensiones centralizadas)
+# Habilitar CORS
+CORS(app)
+
+# Inicializar extensiones
 db.init_app(app)
 jwt.init_app(app)
 
+# Importar modelos y controladores - CORREGIDO
 from models.users_model import User
 from models.videojuego import Videojuego
-
-# Registrar rutas usando los controllers
 from controllers.users_controller import UsersController
 from controllers.videojuegos_controller import VideojuegosController
+# ================= RUTAS API =================
 
-# Rutas del frontend (render templates)
-app.add_url_rule('/login', endpoint='login_page', view_func=lambda: render_template('login.html'), methods=['GET'])
-app.add_url_rule('/register', endpoint='register_page', view_func=lambda: render_template('register.html'), methods=['GET'])
-app.add_url_rule('/home', endpoint='dashboard_page', view_func=lambda: render_template('home.html'), methods=['GET'])
-app.add_url_rule('/videojuegos', endpoint='videojuegos_page', view_func=lambda: render_template('videojuegos.html'), methods=['GET'])
+# Autenticación
+app.add_url_rule('/api/auth/register', view_func=UsersController.register, methods=['POST'])
+app.add_url_rule('/api/auth/login', view_func=UsersController.login, methods=['POST'])
+app.add_url_rule('/api/auth/refresh', view_func=UsersController.refresh, methods=['POST'])
+app.add_url_rule('/api/auth/profile', view_func=UsersController.profile, methods=['GET'])
 
-# Rutas de autenticación (UsersController)
-app.add_url_rule('/api/auth/register', endpoint='api_register', view_func=UsersController.register, methods=['POST'])
-app.add_url_rule('/api/auth/login', endpoint='api_login', view_func=UsersController.login, methods=['POST'])
-app.add_url_rule('/api/auth/refresh', endpoint='api_refresh', view_func=UsersController.refresh, methods=['POST'])
-app.add_url_rule('/api/auth/logout', endpoint='api_logout', view_func=UsersController.logout, methods=['POST'])
-app.add_url_rule('/api/auth/profile', endpoint='api_profile', view_func=UsersController.profile, methods=['GET'])
+# Videojuegos
+app.add_url_rule('/api/videojuegos', view_func=VideojuegosController.get_videojuegos, methods=['GET'])
+app.add_url_rule('/api/videojuegos', view_func=VideojuegosController.create_videojuego, methods=['POST'])
+app.add_url_rule('/api/videojuegos/<int:videojuego_id>', view_func=VideojuegosController.get_videojuego, methods=['GET'])
+app.add_url_rule('/api/videojuegos/<int:videojuego_id>', view_func=VideojuegosController.update_videojuego, methods=['PUT'])
+app.add_url_rule('/api/videojuegos/<int:videojuego_id>', view_func=VideojuegosController.delete_videojuego, methods=['DELETE'])
+app.add_url_rule('/api/videojuegos/search', view_func=VideojuegosController.search_videojuegos, methods=['GET'])
 
-# Rutas de videojuegos (VideojuegosController)
-app.add_url_rule('/api/videojuegos', endpoint='get_videojuegos', view_func=VideojuegosController.get_videojuegos, methods=['GET'])
-app.add_url_rule('/api/videojuegos', endpoint='create_videojuego', view_func=VideojuegosController.create_videojuego, methods=['POST'])
-app.add_url_rule('/api/videojuegos/<int:videojuego_id>', endpoint='get_videojuego', view_func=VideojuegosController.get_videojuego, methods=['GET'])
-app.add_url_rule('/api/videojuegos/<int:videojuego_id>', endpoint='update_videojuego', view_func=VideojuegosController.update_videojuego, methods=['PUT'])
-app.add_url_rule('/api/videojuegos/<int:videojuego_id>', endpoint='delete_videojuego', view_func=VideojuegosController.delete_videojuego, methods=['DELETE'])
+# Rutas básicas
+@app.route('/')
+def home():
+    return jsonify({'message': '🚀 API Videojuegos - Usa /api/health para documentación'})
 
-# Ruta de salud
-@app.route('/api/health', methods=['GET'])
+@app.route('/api/health')
 def health_check():
     return jsonify({
         'status': 'healthy', 
-        'message': 'API funcionando correctamente',
-        'endpoints': {
-            'auth': {
-                'POST /api/auth/register': 'Registrar usuario',
-                'POST /api/auth/login': 'Iniciar sesión',
-                'GET /api/auth/profile': 'Perfil de usuario (requiere token)'
-            },
-            'videojuegos': {
-                'GET /api/videojuegos': 'Listar videojuegos',
-                'POST /api/videojuegos': 'Crear videojuego (requiere admin)'
-            }
-        }
+        'message': 'API funcionando',
+        'endpoints': ['/api/auth/*', '/api/videojuegos/*']
     })
 
-# Ruta de prueba sin API prefix
-@app.route('/')
-def home():
-    return '''
-    <html>
-        <head>
-            <title>API Videojuegos</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 40px; }
-                .endpoint { background: #f5f5f5; padding: 10px; margin: 10px 0; }
-            </style>
-        </head>
-        <body>
-            <h1> API de Videojuegos Funcionando</h1>
-            <p>La API está corriendo correctamente. Prueba estos endpoints:</p>
-            
-            <div class="endpoint">
-                <strong>GET /api/health</strong> - Estado de la API
-            </div>
-            
-            <div class="endpoint">
-                <strong>POST /api/auth/register</strong> - Registrar usuario
-            </div>
-            
-            <div class="endpoint">
-                <strong>POST /api/auth/login</strong> - Iniciar sesión
-            </div>
-            
-            <div class="endpoint">
-                <strong>GET /api/videojuegos</strong> - Listar videojuegos
-            </div>
-            
-            <p><a href="/api/health">Ver todos los endpoints</a></p>
-        </body>
-    </html>
-    '''
-
-# Manejador de errores
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({
-        'error': 'Endpoint no encontrado',
-        'available_endpoints': [
-            'GET  /',
-            'GET  /api/health',
-            'POST /api/auth/register', 
-            'POST /api/auth/login',
-            'GET  /api/auth/profile',
-            'GET  /api/videojuegos',
-            'POST /api/videojuegos'
-        ]
-    }), 404
-
-# Inicializar base de datos
+# Inicializar BD
 def init_db():
     with app.app_context():
-        # Eliminar todas las tablas existentes
         db.drop_all()
-        # Crear todas las tablas desde cero
         db.create_all()
         
-        # Crear usuario admin por defecto
-        admin = User(email='admin@example.com', role='admin')
-        admin.set_password('admin123')
-        db.session.add(admin)
+        # Admin por defecto
+        from services.users_service import UsersService
+        UsersService.create_user('admin@example.com', 'admin123', 'admin')
         
-        # Agregar 10 videojuegos de ejemplo con imágenes
+        # Videojuegos de ejemplo
+        from services.videojuegos_service import VideojuegosService
         juegos = [
             {
                 'titulo': 'The Legend of Zelda: Tears of the Kingdom',
-                'desarrollador': 'Nintendo',
-                'año_lanzamiento': 2023,
-                'genero': 'Acción-Aventura',
-                'plataforma': 'Nintendo Switch',
+                'desarrollador': 'Nintendo', 'año_lanzamiento': 2023,
+                'genero': 'Acción-Aventura', 'plataforma': 'Nintendo Switch',
                 'precio': 59.99,
                 'imagen': 'https://assets.nintendo.com/image/upload/ar_16:9,c_lpad,w_656/b_white/f_auto/q_auto/ncom/software/switch/70010000063714/276a412988e07c4d55a2996c6d38abb408b464413b2dfeb44d2aa460b9f622e1'
             },
             {
-                'titulo': 'Red Dead Redemption 2',
-                'desarrollador': 'Rockstar Games',
-                'año_lanzamiento': 2018,
-                'genero': 'Acción-Aventura',
-                'plataforma': 'PS4/Xbox One/PC',
-                'precio': 49.99,
-                'imagen': 'https://upload.wikimedia.org/wikipedia/en/4/44/Red_Dead_Redemption_II.jpg'
-            },
-            {
-                'titulo': 'Cyberpunk 2077',
-                'desarrollador': 'CD Projekt Red',
-                'año_lanzamiento': 2020,
-                'genero': 'RPG',
-                'plataforma': 'PS4/Xbox One/PC',
-                'precio': 49.99,
-                'imagen': 'https://upload.wikimedia.org/wikipedia/en/9/9f/Cyberpunk_2077_box_art.jpg'
-            },
-            {
-                'titulo': 'Elden Ring',
-                'desarrollador': 'FromSoftware',
-                'año_lanzamiento': 2022,
-                'genero': 'RPG de Acción',
-                'plataforma': 'PS5/Xbox Series X/PC',
-                'precio': 59.99,
+                'titulo': 'Elden Ring', 'desarrollador': 'FromSoftware', 'año_lanzamiento': 2022,
+                'genero': 'RPG de Acción', 'plataforma': 'PS5/Xbox Series X/PC', 'precio': 59.99,
                 'imagen': 'https://upload.wikimedia.org/wikipedia/en/b/b9/Elden_Ring_Box_art.jpg'
-            },
-            {
-                'titulo': 'God of War Ragnarök',
-                'desarrollador': 'Santa Monica Studio',
-                'año_lanzamiento': 2022,
-                'genero': 'Acción-Aventura',
-                'plataforma': 'PS4/PS5',
-                'precio': 69.99,
-                'imagen': 'https://upload.wikimedia.org/wikipedia/en/e/ee/God_of_War_Ragnar%C3%B6k_cover.jpg'
-            },
-            {
-                'titulo': 'Hollow Knight',
-                'desarrollador': 'Team Cherry',
-                'año_lanzamiento': 2017,
-                'genero': 'Metroidvania',
-                'plataforma': 'Switch/PC',
-                'precio': 14.99,
-                'imagen': 'https://upload.wikimedia.org/wikipedia/en/6/6b/Hollow_Knight_cover.jpg'
-            },
-            {
-                'titulo': 'Stardew Valley',
-                'desarrollador': 'ConcernedApe',
-                'año_lanzamiento': 2016,
-                'genero': 'Simulación',
-                'plataforma': 'PC/Switch/Consolas',
-                'precio': 14.99,
-                'imagen': 'https://upload.wikimedia.org/wikipedia/en/0/02/Stardew_Valley_cover_art.jpg'
-            },
-            {
-                'titulo': 'Hades',
-                'desarrollador': 'Supergiant Games',
-                'año_lanzamiento': 2020,
-                'genero': 'Roguelike',
-                'plataforma': 'PC/Consolas',
-                'precio': 24.99,
-                'imagen': 'https://upload.wikimedia.org/wikipedia/en/4/4b/Hades_cover_art.jpg'
-            },
-            {
-                'titulo': 'The Last of Us Part II',
-                'desarrollador': 'Naughty Dog',
-                'año_lanzamiento': 2020,
-                'genero': 'Acción-Aventura',
-                'plataforma': 'PS4',
-                'precio': 59.99,
-                'imagen': 'https://upload.wikimedia.org/wikipedia/en/3/3d/The_Last_of_Us_Part_II_cover_art.jpg'
-            },
-            {
-                'titulo': 'Mario Kart 8 Deluxe',
-                'desarrollador': 'Nintendo',
-                'año_lanzamiento': 2017,
-                'genero': 'Carreras',
-                'plataforma': 'Nintendo Switch',
-                'precio': 59.99,
-                'imagen': 'https://upload.wikimedia.org/wikipedia/en/0/08/MarioKart8Boxart.jpg'
             }
         ]
-
-        for juego_data in juegos:
-            # Evitar duplicados por título
-            existing = Videojuego.query.filter_by(titulo=juego_data['titulo']).first()
-            if existing:
-                # actualizar imagen si está vacía
-                if (not existing.imagen) and juego_data.get('imagen'):
-                    existing.imagen = juego_data.get('imagen')
-                    db.session.add(existing)
-                continue
-            juego = Videojuego(**juego_data)
-            db.session.add(juego)
         
-        db.session.commit()
-        print(" Base de datos inicializada con datos de ejemplo")
+        for juego in juegos:
+            VideojuegosService.create_videojuego(juego)
+        
+        print("✅ BD inicializada")
 
 if __name__ == '__main__':
     init_db()
-    
     port = int(os.environ.get('PORT', 5000))
-    host = '0.0.0.0'
-    
-    print(f" Servidor iniciado en http://{host}:{port}")
-    print(" Endpoints disponibles:")
-    print("   GET  / - Página principal")
-    print("   GET  /api/health - Estado de la API")
-    print("   POST /api/auth/register - Registrar usuario")
-    print("   POST /api/auth/login - Iniciar sesión")
-    print("   GET  /api/videojuegos - Listar videojuegos")
-    
-    app.run(host=host, port=port, debug=True)
+    print(f"🚀 API en http://localhost:{port}")
+    app.run(host='0.0.0.0', port=port, debug=True)
