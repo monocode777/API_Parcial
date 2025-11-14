@@ -11,8 +11,6 @@ class Videojuego(db.Model):
     plataforma = db.Column(db.String(100), nullable=False)
     precio = db.Column(db.Float, nullable=False)
     imagen = db.Column(db.String(500))
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
     
     def to_dict(self):
         return {
@@ -23,10 +21,5 @@ class Videojuego(db.Model):
             'genero': self.genero,
             'plataforma': self.plataforma,
             'precio': self.precio,
-            'imagen': self.imagen,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'imagen': self.imagen
         }
-    
-    def __repr__(self):
-        return f'<Videojuego {self.titulo}>'

@@ -7,9 +7,6 @@ class UsersController:
     def register():
         try:
             data = request.get_json()
-            if not data:
-                return jsonify({'msg': 'No se proporcionaron datos'}), 400
-            
             email = data.get('email')
             password = data.get('password')
             
@@ -32,9 +29,6 @@ class UsersController:
     def login():
         try:
             data = request.get_json()
-            if not data:
-                return jsonify({'msg': 'No se proporcionaron datos'}), 400
-            
             email = data.get('email')
             password = data.get('password')
             
@@ -45,11 +39,7 @@ class UsersController:
             if error:
                 return jsonify({'msg': error}), 401
             
-            # Crear token JWT
-            access_token = create_access_token(
-                identity=user.id,
-                additional_claims={'role': user.role, 'email': user.email}
-            )
+            access_token = create_access_token(identity=user.id)
             
             return jsonify({
                 'access_token': access_token,
@@ -65,41 +55,6 @@ class UsersController:
         try:
             user_id = get_jwt_identity()
             user = UsersService.get_user_by_id(user_id)
-            
-            if not user:
-                return jsonify({'msg': 'Usuario no encontrado'}), 404
-            
-            return jsonify({
-                'user': user.to_dict()
-            }), 200
-            
+            return jsonify({'user': user.to_dict()}), 200
         except Exception as e:
-            return jsonify({'msg': f'Error obteniendo perfil: {str(e)}'}), 500
-
-    @staticmethod
-    @jwt_required()
-    def refresh():
-        try:
-            user_id = get_jwt_identity()
-            user = UsersService.get_user_by_id(user_id)
-            
-            if not user:
-                return jsonify({'msg': 'Usuario no encontrado'}), 404
-            
-            # Crear nuevo token
-            new_token = create_access_token(
-                identity=user.id,
-                additional_claims={'role': user.role, 'email': user.email}
-            )
-            
-            return jsonify({
-                'access_token': new_token
-            }), 200
-            
-        except Exception as e:
-            return jsonify({'msg': f'Error refrescando token: {str(e)}'}), 500
-
-    @staticmethod
-    def logout():
-        # En JWT, el logout se maneja en el cliente eliminando el token
-        return jsonify({'msg': 'Logout exitoso'}), 200
+            return jsonify({'msg': f'Error: {str(e)}'}), 500

@@ -8,7 +8,6 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), default='user')
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -20,9 +19,5 @@ class User(db.Model):
         return {
             'id': self.id,
             'email': self.email,
-            'role': self.role,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'role': self.role
         }
-    
-    def __repr__(self):
-        return f'<User {self.email}>'
